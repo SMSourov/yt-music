@@ -2,6 +2,9 @@ import subprocess
 import sys
 import os
 
+# Import the generate_unique_filename function
+from generate_temp_filename import generate_unique_filename
+
 # Ensure requirements.py is executed before proceeding
 def check_requirements():
     """Run requirements.py and exit if any requirements are missing."""
@@ -58,6 +61,24 @@ def main():
     print(f"Input Link: {link}")
     if debug_mode:
         print(f"Debug Mode: {debug_mode}")
+        sys.exit(0)  # Skip processing if debug mode is enabled
+
+    # Generate a unique filename
+    temp_filename = generate_unique_filename()
+
+    # Execute yt-dlp command
+    command = ["py", "./executables/yt-dlp", "-j", link]
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        # Save JSON output to the generated filename
+        with open(temp_filename, "w", encoding="utf-8") as file:
+            file.write(result.stdout)
+        print(f"Metadata saved as: {temp_filename}")
+    else:
+        print("Error: Failed to retrieve metadata.")
+        print(result.stderr)
+        sys.exit(1)
 
 if __name__ == "__main__":
     main()

@@ -14,6 +14,10 @@ def check_requirements():
         print(result.stdout)  # Show missing requirements
         sys.exit(1)
 
+def is_json_file(filename):
+    """Check if the given filename is a JSON file."""
+    return filename.lower().endswith(".json")
+
 def main():
     """Main program execution."""
     # Run requirements check first
@@ -42,9 +46,21 @@ def main():
     if "-d" in args or "--debug" in args:
         try:
             debug_index = args.index("-d") if "-d" in args else args.index("--debug")
-            debug_mode = args[debug_index + 1]
+            debug_file = args[debug_index + 1]
+
+            # Check if the file exists and is a JSON file
+            if not os.path.exists(debug_file):
+                print(f"Error: Debug file '{debug_file}' does not exist.")
+                sys.exit(1)
+
+            if not is_json_file(debug_file):
+                print(f"Error: Debug file '{debug_file}' is not a JSON file.")
+                sys.exit(1)
+
+            print(f"Debug Mode: Using JSON file '{debug_file}'")
+            sys.exit(0)  # Exit after validation
         except (IndexError, ValueError):
-            print("Error: Debug flag (-d or --debug) requires an argument.")
+            print("Error: Debug flag (-d or --debug) requires a file argument.")
             sys.exit(1)
 
     # Extract the link

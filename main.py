@@ -1,6 +1,7 @@
 import subprocess
 import sys
 import os
+import json
 
 # Import the generate_unique_filename function
 from generate_temp_filename import generate_unique_filename
@@ -18,6 +19,32 @@ def is_json_file(filename):
     """Check if the given filename is a JSON file."""
     return filename.lower().endswith(".json")
 
+def read_metadata_file(filename):
+    """Read and return the contents of a JSON metadata file."""
+    try:
+        with open(filename, "r", encoding="utf-8") as file:
+            metadata = json.load(file)
+            return metadata
+    except Exception as e:
+        print(f"Error: Failed to read JSON file '{filename}'. Reason: {e}")
+        sys.exit(1)
+
+def fetch_metadata(link):
+    """Fetch metadata using yt-dlp and save it as a JSON file."""
+    temp_filename = generate_unique_filename()
+    command = ["py", "./executables/yt-dlp", "-j", link]
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    if result.returncode == 0:
+        with open(temp_filename, "w", encoding="utf-8") as file:
+            file.write(result.stdout)
+        print(f"Metadata saved as: {temp_filename}")
+        return temp_filename
+    else:
+        print("Error: Failed to retrieve metadata.")
+        print(result.stderr)
+        sys.exit(1)
+
 def main():
     """Main program execution."""
     # Run requirements check first
@@ -25,14 +52,12 @@ def main():
 
     # Check for arguments
     if len(sys.argv) < 2:
-        print("Error: No link provided. Usage: main.py <link> [-d debug_mode]")
+        print("Error: No input provided. Usage: main.py <link> OR main.py -d <filename>")
         sys.exit(1)
 
-    # Handle arguments
-    link = None
-    debug_mode = None
-
     args = sys.argv[1:]
+    metadata_file = None
+
     if "-h" in args or "--help" in args:
         # Display help file
         help_file = "docs/help.txt"
@@ -46,55 +71,41 @@ def main():
     if "-d" in args or "--debug" in args:
         try:
             debug_index = args.index("-d") if "-d" in args else args.index("--debug")
-            debug_file = args[debug_index + 1]
+            metadata_file = args[debug_index + 1]
 
             # Check if the file exists and is a JSON file
-            if not os.path.exists(debug_file):
-                print(f"Error: Debug file '{debug_file}' does not exist.")
+            if not os.path.exists(metadata_file):
+                print(f"Error: Debug file '{metadata_file}' does not exist.")
                 sys.exit(1)
 
-            if not is_json_file(debug_file):
-                print(f"Error: Debug file '{debug_file}' is not a JSON file.")
+            if not is_json_file(metadata_file):
+                print(f"Error: Debug file '{metadata_file}' is not a JSON file.")
                 sys.exit(1)
 
-            print(f"Debug Mode: Using JSON file '{debug_file}'")
-            sys.exit(0)  # Exit after validation
         except (IndexError, ValueError):
             print("Error: Debug flag (-d or --debug) requires a file argument.")
             sys.exit(1)
 
-    # Extract the link
-    for arg in args:
-        if arg.startswith("http"):
-            link = arg
-            break
-
-    if not link:
-        print("Error: No valid link provided.")
-        sys.exit(1)
-
-    # Display the given input
-    print(f"Input Link: {link}")
-    if debug_mode:
-        print(f"Debug Mode: {debug_mode}")
-        sys.exit(0)  # Skip processing if debug mode is enabled
-
-    # Generate a unique filename
-    temp_filename = generate_unique_filename()
-
-    # Execute yt-dlp command
-    command = ["py", "./executables/yt-dlp", "-j", link]
-    result = subprocess.run(command, capture_output=True, text=True)
-
-    if result.returncode == 0:
-        # Save JSON output to the generated filename
-        with open(temp_filename, "w", encoding="utf-8") as file:
-            file.write(result.stdout)
-        print(f"Metadata saved as: {temp_filename}")
     else:
-        print("Error: Failed to retrieve metadata.")
-        print(result.stderr)
-        sys.exit(1)
+        # Extract the link
+        link = None
+        for arg in args:
+            if arg.startswith("http"):
+                link = arg
+                break
+
+        if not link:
+            print("Error: No valid link provided.")
+            sys.exit(1)
+
+        print(f"Input Link: {link}")
+        metadata_file = fetch_metadata(link)  # Get metadata and save it
+
+    # Read the metadata file
+    metadata = read_metadata_file(metadata_file)
+
+    # Continue with other tasks using the metadata...
+    print("Metadata successfully loaded. Proceeding with other tasks...")
 
 if __name__ == "__main__":
     main()

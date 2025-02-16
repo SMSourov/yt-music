@@ -1,4 +1,5 @@
 __pycache__/*
 docs/video_resolutions_landscape.txt
 docs/video_resolutions_portrait.txt
+docs/video_codecs.txt
 *.json

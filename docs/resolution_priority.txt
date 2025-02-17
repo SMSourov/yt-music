@@ -1,0 +1,23 @@
+If the program is run for the first time, the program 
+will quit in between the process. The reason is that 
+the desired resolution is not set. A list of 
+resolutions can be found in the following folder. 
+`
+docs/video_resolutions_landscape.txt
+docs/video_resolutions_portrait.txt
+`
+To set your desired resolution, you simply have to 
+put `@` symbol before the desired resolution. For 
+example:
+`
+@1920x1080
+`
+You can also set an optional resolution if the 
+desired resolution is not found. You simply have to 
+put `#` symbol before the optional resolution. For 
+example:
+`
+#1280x720
+`
+If both of them is not found then the best option 
+detected by yt-dlp will be downloaded.

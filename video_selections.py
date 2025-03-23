@@ -59,34 +59,58 @@ def update_codecs():
     with open(VIDEO_CODEC_FILE, "r", encoding="utf-8") as file:
         codecs = [line.strip() for line in file if line.strip()]
 
-    # Ensure priority markers for `vp09` (@) and `av01` (#)
-    new_codecs = []
-    found_vp09 = found_av01 = False
-
-    for codec in codecs:
-        clean_codec = codec.lstrip("@#")  # Remove existing markers
-
-        if clean_codec == "vp09":
-            new_codecs.append("@" + clean_codec)
-            found_vp09 = True
-        elif clean_codec == "av01":
-            new_codecs.append("#" + clean_codec)
-            found_av01 = True
-        else:
-            new_codecs.append(clean_codec)
-
-    # If `vp09` wasn't found, insert it at the top with `@`
-    if not found_vp09:
-        new_codecs.insert(0, "@vp09")
+    # Extract priority markers before sorting
+    priority_map = {}
+    cleaned_codecs = []
     
-    # If `av01` wasn't found, insert it after `vp09` with `#`
-    if not found_av01:
-        new_codecs.insert(1, "#av01")
+    for line in codecs:
+        marker = ""
+        codec_name = line
+
+        if line.startswith("@") or line.startswith("#"):
+            marker, codec_name = line[0], line[1:]
+
+        priority_map[codec_name] = marker  # Preserve marker
+        cleaned_codecs.append(codec_name)
+
+    # Sort without losing priority markers
+    sorted_codecs = sorted(set(cleaned_codecs))
+
+    # Reapply existing priority markers
+    updated_codecs = []
+    for codec in sorted_codecs:
+        if codec in priority_map:
+            updated_codecs.append(priority_map[codec] + codec)
+        else:
+            updated_codecs.append(codec)
+
+    # Determine if `@` and `#` need to be assigned
+    has_at = any(c.startswith("@") for c in updated_codecs)
+    has_hash = any(c.startswith("#") for c in updated_codecs)
+
+    vp09_index = updated_codecs.index("vp09") if "vp09" in updated_codecs else None
+    av01_index = updated_codecs.index("av01") if "av01" in updated_codecs else None
+
+    if not has_at and not has_hash:
+        # If neither `@` nor `#` is present, add `@vp09` and `#av01`
+        if vp09_index is not None:
+            updated_codecs[vp09_index] = "@vp09"
+        if av01_index is not None:
+            updated_codecs[av01_index] = "#av01"
+
+    elif not has_at and has_hash:
+        # If `#` is present but `@` is missing
+        if vp09_index is not None and updated_codecs[vp09_index].startswith("#"):
+            updated_codecs[av01_index] = "@av01"  # Convert `#vp09` → `@av01`
+        elif av01_index is not None and updated_codecs[av01_index].startswith("#"):
+            updated_codecs[vp09_index] = "@vp09"  # Convert `#av01` → `@vp09`
+
+    # If `@` is present but `#` is missing, or both are present, do nothing
 
     with open(VIDEO_CODEC_FILE, "w", encoding="utf-8") as file:
-        file.write("\n".join(new_codecs) + "\n")
+        file.write("\n".join(updated_codecs) + "\n")
 
-    log_debug(f"Updated codec priorities: {', '.join(new_codecs)}")
+    log_debug(f"Updated codec priorities: {', '.join(updated_codecs)}")
 
 def process_selections():
     """Process resolutions and codecs selection."""
@@ -105,7 +129,7 @@ def process_selections():
     # Update codec priorities
     update_codecs()
 
-    print("Updated resolutions and codecs successfully.")
+    # print("Updated resolutions and codecs successfully.")
 
 def main():
     """Main execution."""

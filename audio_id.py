@@ -63,14 +63,11 @@ def main():
     """Main execution flow."""
     json_file = validate_input()
 
-    # Step 1: Process resolutions and codecs
-    run_script("video_codecs_resolutions.py", json_file)
-    
-    # Step 2: Select priority resolutions and codecs
-    run_script("video_selections.py", json_file)
+    # Step 1: Process audio codecs and format notes
+    run_script("audio_codecs_qualities.py", json_file)
 
-    # Step 3: Determine format IDs based on priority selections
-    run_script("video_format_ids.py", json_file)
+    # Step 2: Select priority codecs and format notes
+    run_script("audio_selections.py", json_file)
 
 if __name__ == "__main__":
     main()

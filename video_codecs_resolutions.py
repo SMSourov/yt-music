@@ -174,7 +174,7 @@ def process_json(json_file):
     save_sorted_resolutions(resolution_file, existing_resolutions)
     save_sorted_codecs(VIDEO_CODEC_FILE, existing_codecs)
 
-    print(f"Updated {resolution_file} and {VIDEO_CODEC_FILE}")
+    # print(f"Updated {resolution_file} and {VIDEO_CODEC_FILE}")
 
 def main():
     """Main execution."""

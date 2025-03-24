@@ -45,6 +45,23 @@ def fetch_metadata(link):
         print(result.stderr)
         sys.exit(1)
 
+def run_script(script_name, json_file):
+    """Execute a Python script with the given JSON file."""
+    command = ["python", script_name, json_file]
+    # if DEBUG_MODE:
+    #     command.append("-d")  # Pass debug flag if enabled
+
+    # log_debug(f"Executing: {' '.join(command)}")
+
+    result = subprocess.run(command, capture_output=True, text=True)
+
+    if result.returncode != 0:
+        print(f"Error: {script_name} failed.")
+        print(result.stderr)
+        sys.exit(1)
+
+    print(result.stdout.strip())
+
 def main():
     """Main program execution."""
     # Run requirements check first
@@ -106,6 +123,9 @@ def main():
 
     # Continue with other tasks using the metadata...
     print("Metadata successfully loaded. Proceeding with other tasks...")
+
+    run_script("video_id.py", metadata_file)
+    run_script("audio_id.py", metadata_file)
 
 if __name__ == "__main__":
     main()

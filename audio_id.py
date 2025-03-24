@@ -69,5 +69,8 @@ def main():
     # Step 2: Select priority codecs and format notes
     run_script("audio_selections.py", json_file)
 
+    # Step 3: Determine format IDs based on priority selections
+    run_script("audio_format_ids.py", json_file)
+
 if __name__ == "__main__":
     main()

@@ -57,11 +57,37 @@ def normalize_audio_codec(acodec):
         return "mp4a"
     return acodec
 
-def save_sorted_data(filepath, data):
-    """Save sorted data to a file."""
-    sorted_values = sorted(set(data))
+def load_existing_priorities(filepath):
+    """Load existing priority markers (`@`, `#`) from a file."""
+    priorities = {}  # Dictionary to store codec -> marker mapping
+
+    if not os.path.exists(filepath):
+        return priorities  # Return empty if file does not exist
+
+    with open(filepath, "r", encoding="utf-8") as file:
+        for line in file:
+            line = line.strip()
+            if not line:
+                continue
+            
+            marker = ""
+            if line.startswith("@") or line.startswith("#"):
+                marker, codec = line[0], line[1:].strip()
+            else:
+                codec = line.strip()
+
+            priorities[codec] = marker  # Store marker for each codec
+
+    return priorities
+
+def save_sorted_data(filepath, data, existing_priorities):
+    """Save sorted data to a file while preserving priority markers."""
+    sorted_codecs = sorted(set(data))  # Sort without markers
+
     with open(filepath, "w", encoding="utf-8") as file:
-        file.write("\n".join(sorted_values) + "\n")
+        for codec in sorted_codecs:
+            marker = existing_priorities.get(codec, "")  # Get existing marker
+            file.write(f"{marker}{codec}\n")
 
 def process_audio_data(json_file):
     """Extract and update audio codec and format note files."""
@@ -89,10 +115,14 @@ def process_audio_data(json_file):
     log_debug(f"Extracted {len(audio_codecs)} unique audio codecs.")
     log_debug(f"Extracted {len(format_notes)} unique format notes.")
 
-    save_sorted_data(AUDIO_CODEC_FILE, audio_codecs)
-    save_sorted_data(AUDIO_FORMAT_NOTE_FILE, format_notes)
+    # Load existing priority markers before saving
+    existing_codec_priorities = load_existing_priorities(AUDIO_CODEC_FILE)
+    existing_format_priorities = load_existing_priorities(AUDIO_FORMAT_NOTE_FILE)
 
-    print(f"Updated {AUDIO_CODEC_FILE} and {AUDIO_FORMAT_NOTE_FILE}")
+    save_sorted_data(AUDIO_CODEC_FILE, audio_codecs, existing_codec_priorities)
+    save_sorted_data(AUDIO_FORMAT_NOTE_FILE, format_notes, existing_format_priorities)
+
+    # print(f"Updated {AUDIO_CODEC_FILE} and {AUDIO_FORMAT_NOTE_FILE}")
 
 def main():
     """Main execution."""

@@ -8,101 +8,85 @@ AUDIO_CODEC_FILE = "docs/audio_codecs.txt"
 DEBUG_MODE = False
 
 def log_debug(message):
-    """Print debug messages only if debug mode is enabled."""
+    """Prints debug messages only if debug mode is enabled."""
     if DEBUG_MODE:
         print(f"[DEBUG] {message}")
 
 def validate_input():
-    """Validate command-line arguments and enable debug mode if '-d' is provided."""
+    """Validate command-line arguments and check if debug mode is enabled."""
     global DEBUG_MODE
     if "-d" in sys.argv:
         DEBUG_MODE = True
-        sys.argv.remove("-d")
+        sys.argv.remove("-d")  # Remove debug flag from arguments
 
-def load_codecs(file_path):
-    """Load codec lines from the file, preserving order and markers."""
-    if not os.path.exists(file_path):
-        log_debug(f"File '{file_path}' does not exist.")
+def load_codecs():
+    """Loads codec lines from the file, preserving order and markers."""
+    if not os.path.exists(AUDIO_CODEC_FILE):
+        log_debug(f"File '{AUDIO_CODEC_FILE}' does not exist. Skipping.")
         return []
-    
-    with open(file_path, "r", encoding="utf-8") as file:
+
+    with open(AUDIO_CODEC_FILE, "r", encoding="utf-8") as file:
         return [line.strip() for line in file if line.strip()]
 
-def save_codecs(file_path, lines):
-    """Write the codec lines back to the file."""
-    with open(file_path, "w", encoding="utf-8") as file:
+def save_codecs(lines):
+    """Writes the codec lines back to the file."""
+    with open(AUDIO_CODEC_FILE, "w", encoding="utf-8") as file:
         file.write("\n".join(lines) + "\n")
 
-def update_codec_priorities():
-    """Ensure correct priority markers in AUDIO_CODEC_FILE without removing existing ones."""
-    lines = load_codecs(AUDIO_CODEC_FILE)
-    if not lines:
-        log_debug("No codecs found.")
+def update_codecs():
+    """Ensure `mp4a` is the highest priority codec and `opus` is second while preserving order."""
+    codecs = load_codecs()
+    if not codecs:
         return
 
-    log_debug(f"Initial lines: {lines}")
+    log_debug(f"Initial codecs: {codecs}")
 
-    has_at = any(line.startswith("@") for line in lines)
-    has_hash = any(line.startswith("#") for line in lines)
+    codec_map = {}  # Stores markers for each codec
+    ordered_codecs = []  # Stores codecs in order
 
-    # Preserve order and existing markers
-    codec_map = {}
-    ordered_codecs = []
-    
-    for line in lines:
+    for line in codecs:
         marker = ""
         codec = line
 
         if line.startswith("@") or line.startswith("#"):
             marker, codec = line[0], line[1:]
 
-        codec_map[codec] = marker
+        codec_map[codec] = marker  # Preserve marker
         ordered_codecs.append(codec)
-
-    log_debug(f"Before processing: {codec_map}")
 
     updated = False
 
-    if has_at and has_hash:
-        log_debug("Both '@' and '#' exist. No changes needed.")
-        return
+    # Check if @ or # is present
+    has_at_mp4a = codec_map.get("mp4a") == "@"
+    has_hash_mp4a = codec_map.get("mp4a") == "#"
+    has_at_opus = codec_map.get("opus") == "@"
+    has_hash_opus = codec_map.get("opus") == "#"
 
-    if not has_at and not has_hash:
-        # No '@' or '#' present → Add '@medium' and '#low'
-        if "medium" in codec_map and codec_map["medium"] == "":
-            codec_map["medium"] = "@"
-            updated = True
-        if "low" in codec_map and codec_map["low"] == "":
-            codec_map["low"] = "#"
-            updated = True
+    if has_hash_mp4a and not has_at_opus:
+        codec_map["opus"] = "@"
+        updated = True
 
-    elif not has_at and has_hash:
-        # If `#` exists but `@` is missing
-        for codec, marker in codec_map.items():
-            if marker == "#":
-                if codec != "medium":
-                    if "medium" in codec_map and codec_map["medium"] == "":
-                        codec_map["medium"] = "@"
-                        updated = True
-                        break
-                elif codec == "medium":
-                    if "low" in codec_map and codec_map["low"] == "":
-                        codec_map["low"] = "@"
-                        updated = True
-                        break
+    if has_hash_opus and not has_at_mp4a:
+        codec_map["mp4a"] = "@"
+        updated = True
 
-    log_debug(f"After processing: {codec_map}")
+    # If no markers exist, add @mp4a and #opus
+    if not has_at_mp4a and not has_hash_mp4a and not has_at_opus and not has_hash_opus:
+        codec_map["mp4a"] = "@"
+        codec_map["opus"] = "#"
+        updated = True
 
     if updated:
-        updated_lines = [f"{codec_map.get(codec, '')}{codec}" for codec in ordered_codecs]
-        save_codecs(AUDIO_CODEC_FILE, updated_lines)
-        print("Updated audio codecs successfully.")
+        updated_codecs = [f"{codec_map.get(c, '')}{c}" for c in ordered_codecs]
+        save_codecs(updated_codecs)
+        log_debug(f"Updated codecs: {updated_codecs}")
     else:
         log_debug("No changes needed.")
 
 def main():
+    """Main execution."""
     validate_input()
-    update_codec_priorities()
+    update_codecs()
 
 if __name__ == "__main__":
     main()
